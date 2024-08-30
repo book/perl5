@@ -1,0 +1,48 @@
+# Generating the RMG
+
+There's still a bunch of sections that are not relevant.
+It should also show steps in the correct order.
+
+The only steps should be:
+- run this script
+- check the output
+- commit (possibly with a pre-formatted message)
+- repeat until you run out of tests
+
+# Updating dual-life modules
+
+version's version number didn't seem to get updated
+
+-> we skipped it
+
+# POD tests
+
+There were 25 files that had new potential problems identified.
+
+The first few we looked at seemed to be "fine".
+
+Contrary to what the error message said:
+
+   ./perl -Ilib t/porting/podcheck.t --regen
+
+didn't change a thing, and the errors still show up.
+
+-> we skipped it
+
+
+# Improvements
+
+Upstream CPAN distributions updates should happen
+before/outside the release process
+
+# PR template should mention updating perldelta if worthy
+
+(if there's a template already)
+
+# Create an issue for dist/Module-CoreList/lib/Module/CoreList.pm
+
+the delta_from value is a float, but should be a string,
+because it's used as a key
+
+implies a fix is needed for Porting/corelist.pl
+
