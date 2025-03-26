@@ -1,0 +1,56 @@
+On 2025-03-26 17:58, Philippe Bruhat (BooK) wrote:
+> Hi,
+> 
+> Eric, Thibault and I are trying to improve the Perl release process for
+> future release managers.
+> 
+> As someone who has done a release recently, we'd be interested in
+> hearing your feedback on how the process sucks. :-)
+> 
+> Even tiny irritations and nitpicks are intersting to us!
+
+I've mostly reported the things I've noticed:
+
+- 
+https://github.com/Perl/perl5/commit/33a8b15ea5268b50f1e50dc8a69e300903c07b93 
+(committed directly)
+- 
+https://github.com/Perl/perl5/commit/1fe2652706fcc8c8e954c8bef4c1817f316b6388 
+(committed directly)
+- 
+https://github.com/Perl/perl5/commit/3e105179adb204136ac4a7ef174d96f9698b97fe 
+(committed directly)
+- https://github.com/Perl/perl5/pull/23149 (already merged)
+
+- https://github.com/Perl/perl5/pull/23140 (awaiting review)
+- https://github.com/Perl/perl5/issues/23145 (looking for answers)
+- https://github.com/Perl/perl5/issues/23141 (looking for answers)
+
+Still unreported: Towards the end, the RMG contains two sections that 
+say to use 5.X.Y in the commit message:
+
+ $ git commit -m'New perldelta for 5.X.Y'
+
+ $ git commit -m "Prepare Module::Corelist for 5.X.Y"
+
+In both cases, I used 5.X.(Y+1) instead because that's what made more 
+sense to me and is also what seems to have been done in previous 5.41.* 
+releases. If that is correct, the RMG should probably be fixed, but I'm 
+not sure how.
+
+Also unreported: The "git push origin tag v5.X.Y" step seems to require 
+special privileges in github ("Perl Releasers" membership). If so, this 
+should be spelled out more explicitly in the Prerequisites section. 
+Looking back now I can see that "Perl-Releasers" (that hyphen shouldn't 
+be there?) is mentioned, but only in a paragraph starting "If you are 
+not yet a perl committer". I skipped over it because 1) I already have a 
+github account and 2) I have write/commit permissions on the perl5 repo.
+
+Not directly related to the RMG or blead, but 
+https://pause.perl.org/pause/authenquery?ACTION=add_uri claims "GET URL: 
+PAUSE fetches any http or ftp URL that can be handled by LWP (*Note: 
+https is currently not supported*)". In practice, https worked fine when 
+I tried it, so maybe this should be mentioned in the "Upload to PAUSE" step.
+
+
+That's what I have off the top of my head.
