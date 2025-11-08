@@ -2498,6 +2498,110 @@ S_maybe_multimagic_gv(pTHX_ GV *gv, const char *name, const svtype sv_type)
     }
 }
 
+/* Table of the "English names" aliases for punctuation variables */
+const struct {
+    const char *longname;
+          char  shortname;
+     short int  is_array;
+} english_names[] = {
+    /* The ground of all being. */
+    { "ARG",                            '_'    }, /* $_  */
+    /* Matching. */
+    { "LAST_PAREN_MATCH",               '+'    }, /* $+  */
+    { "LAST_SUBMATCH_RESULT",           'N'    }, /* $^N */
+    { "LAST_MATCH_START",               '-'    }, /* @-  just the ARRAY slot? */
+    { "LAST_MATCH_END",                 '+'    }, /* @+  just the ARRAY slot? */
+    /* Input. */
+    { "INPUT_LINE_NUMBER",              '.'    }, /* $.  */
+        { "NR",                         '.'    }, /* $.  */
+    { "INPUT_RECORD_SEPARATOR",         '/'    }, /* $/  */
+        { "RS",                         '/'    }, /* $/  */
+    /* Output. */
+    { "OUTPUT_AUTOFLUSH",               '|'    }, /* $|  */
+    { "OUTPUT_FIELD_SEPARATOR",         ','    }, /* $,  */
+        { "OFS",                        ','    }, /* $,  */
+    { "OUTPUT_RECORD_SEPARATOR",        '\\'   }, /* $\  */
+        { "ORS",                        '\\'   }, /* $\  */
+    /* Interpolation "constants". */
+    { "LIST_SEPARATOR",                 '"'    }, /* $"  */
+    { "SUBSCRIPT_SEPARATOR",            ';'    }, /* $;  */
+        { "SUBSEP",                     ';'    }, /* $;  */
+    /* Formats */
+    { "FORMAT_PAGE_NUMBER",             '%'    }, /* $%  */
+    { "FORMAT_LINES_PER_PAGE",          '='    }, /* $=  */
+    { "FORMAT_LINES_LEFT",              '-'    }, /* $-  just the SCALAR slot? */
+    { "FORMAT_NAME",                    '~'    }, /* $~  */
+    { "FORMAT_TOP_NAME",                '^'    }, /* $^  */
+    { "FORMAT_LINE_BREAK_CHARACTERS",   ':'    }, /* $:  */
+    { "FORMAT_FORMFEED",                'L'    }, /* $^L */
+    /* Error status. */
+    { "CHILD_ERROR",                    '?'    }, /* $?  */
+    { "OS_ERROR",                       '!'    }, /* $!  */
+        { "ERRNO",                      '!'    }, /* $!  */
+    { "OS_ERROR",                       '!'    }, /* $!  */
+        { "ERRNO",                      '!'    }, /* $!  */
+    { "EXTENDED_OS_ERROR",              'E'    }, /* $^E */
+    { "EVAL_ERROR",                     '@'    }, /* $@  */
+    /* Process info. */
+    { "PROCESS_ID",                     '$'    }, /* $$  */
+        { "PID",                        '$'    }, /* $$  */
+    { "REAL_USER_ID",                   '<'    }, /* $<  */
+        { "UID",                        '<'    }, /* $<  */
+    { "EFFECTIVE_USER_ID",              '>'    }, /* $>  */
+        { "EUID",                       '>'    }, /* $>  */
+    { "REAL_GROUP_ID",                  '('    }, /* $(  */
+        { "GID",                        '('    }, /* $(  */
+    { "EFFECTIVE_GROUP_ID",             ')'    }, /* $)  */
+        { "EGID",                       ')'    }, /* $)  */
+    { "PROGRAM_NAME",                   '0'    }, /* $0  */
+    /* Internals. */
+    { "PERL_VERSION",                   'V'    }, /* $^V */
+    { "OLD_PERL_VERSION",               ']'    }, /* $]  */
+    { "ACCUMULATOR",                    'A'    }, /* $^A */
+    { "COMPILING",                      'C'    }, /* $^C */
+    { "DEBUGGING",                      'D'    }, /* $^D */
+    { "SYSTEM_FD_MAX",                  'F'    }, /* $^F */
+    { "INPLACE_EDIT",                   'I'    }, /* $^I */
+    { "PERLDB",                         'P'    }, /* $^P */
+    { "LAST_REGEXP_CODE_RESULT",        'R'    }, /* $^R */
+    { "EXCEPTIONS_BEING_CAUGHT",        'S'    }, /* $^S */
+    { "BASETIME",                       'T'    }, /* $^T */
+    { "WARNING",                        'W'    }, /* $^W */
+    { "EXECUTABLE_NAME",                'X'    }, /* $^X */
+    { "OSNAME",                         'O'    }, /* $^O */
+    /* Deprecated. */
+ /* { "ARRAY_BASE",                     '['    }, */
+ /* { "OFMT",                           '#'    }, */
+    /* these are just regular multi-character control character variables */
+    { "CAPTURE",                        '\xFF' },
+    { "CHILD_ERROR_NATIVE",             '\xFF' },
+    { "ENCODING",                       '\xFF' },
+    { "GLOBAL_PHASE",                   '\xFF' },
+    { "HOOK",                           '\xFF' },
+    { "LAST_FH",                        '\xFF' },
+    { "LAST_SUCCESSFUL_PATTERN",        '\xFF' },
+    { "LETTERS",                        '\xFF' },
+ /* { "MATCH",                          '\xFF' }, */
+    { "MAX_EVAL_BEGIN_DEPTH",           '\xFF' },
+    { "MAX_NESTED_EVAL_BEGIN_BLOCKS",   '\xFF' },
+    { "OPEN",                           '\xFF' },
+ /* { "POSTMATCH",                      '\xFF' }, */
+ /* { "PREMATCH",                       '\xFF' }, */
+    { "RE_COMPILE_RECURSION_LIMIT",     '\xFF' },
+    { "RE_DEBUG_FLAGS",                 '\xFF' },
+    { "RE_TRIE_MAXBUF",                 '\xFF' },
+    { "RE_TRIE_MAXBUFF",                '\xFF' },
+    { "SAFE_LOCALES",                   '\xFF' },
+    { "TAINT",                          '\xFF' },
+    { "UNICODE",                        '\xFF' },
+    { "UTF8LOCALE",                     '\xFF' },
+    { "WARNING_BITS",                   '\xFF' },
+    { "WARNING_HINTS",                  '\xFF' },
+    { "WIDE_SYSTEM_CALLS",              '\xFF' },
+    /* end of the list */
+    { 0 },
+};
+
 /*
 =for apidoc      gv_fetchpv
 =for apidoc_item gv_fetchpvn
@@ -2605,6 +2709,42 @@ Perl_gv_fetchpvn_flags(pTHX_ const char *nambeg, STRLEN full_len, I32 flags,
     }
 
     /* By this point we should have a stash and a name */
+
+    /* if the name has the conditions for alias mapping
+     * then look it up in the alias map
+     * and if we find it, grab the gv by its short name
+     * insert it into the PL_defstash symbol table by its long name
+     */
+    /* if the first character is between ^A and ^Z
+     * look the name up in english_names
+     */
+    if ( len > 1 && name[0] > 0 && name[0] <= 26 ) {
+        char shortname = 0;
+        for ( int i = 0; english_names[i].longname; i++ ) {
+            if ( name[0] == ( english_names[i].longname[0] & 0x1F )
+              && strEQ( name+1, english_names[i].longname +1) )
+            {
+                  shortname = english_names[i].shortname;
+                  break;
+            }
+        }
+        if ( shortname ) { /* found the English name in the table */
+            if ( shortname != '\xFF' ) { /* do the aliasing */
+                /* find the GV for the shortname */
+                GV *ogv = gv_fetchpvn_flags( shortname, 1, 0, SVt_PVGV ); // shouldn't be NULL
+                hv_store(PL_defstash,name,strlen(name),(SV *)ogv,0);
+                //GvMULTI_on(gv);
+                return gv;
+            }
+        }
+        else { /* warn about unknown variable */
+            Perl_ck_warner_d(aTHX_ packWARN(WARN_XXX),
+                         "Unknown control character variable %s");
+
+        }
+    }
+
+
     gvp = (GV**)hv_fetch(stash,name,is_utf8 ? -(I32)len : (I32)len,add);
     if (!gvp || *gvp == (const GV *)&PL_sv_undef) {
         if (addmg) gv = (GV *)newSV_type(SVt_NULL);     /* tentatively */
