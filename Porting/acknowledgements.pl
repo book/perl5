@@ -20,6 +20,7 @@ text.
 use strict;
 use warnings;
 use autodie;
+use Getopt::Long;
 use Encode qw(decode_utf8);
 use POSIX qw(ceil);
 use Text::Wrap;
@@ -31,12 +32,16 @@ binmode STDOUT, ':encoding(UTF-8)';
 binmode STDERR, ':encoding(UTF-8)';
 
 $Text::Wrap::columns = 77;
+my $Usage = "Usage: perl Porting/acknowledgements.pl [ --email ] v5.15.0..HEAD\n";
+
+GetOptions( \my %option, 'email' )
+  or die $Usage;
 
 my $since_until = shift;
 
 my ( $since, $until ) = split '\.\.', $since_until;
 
-die "Usage: perl Porting/acknowledgements.pl v5.15.0..HEAD"
+die $Usage
     unless $since_until && $since && $until;
 
 my $previous_version = previous_version();
@@ -78,6 +83,10 @@ community for helping Perl to flourish.
 
 For a more complete list of all of Perl's historical contributors,
 please see the F<AUTHORS> file in the Perl source distribution.";
+
+# drop POD markers (naively)
+$text =~ s/[BCIF]<([^>]+)>/$1/g
+  if $option{email};
 
 my $wrapped = fill( '', '', $text );
 print "$wrapped\n";
