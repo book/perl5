@@ -14,35 +14,40 @@ binmode STDOUT, ':encoding(UTF-8)';
 binmode STDERR, ':encoding(UTF-8)';
 
 $Text::Wrap::columns = 77;
-my $Usage = "Usage: perl Porting/acknowledgements.pl [ --email ] v5.15.0..HEAD\n";
+my $Usage = "Usage: perl Porting/acknowledgements.pl [ --email ] --version 5.X.Y-RC#\n";
 
-GetOptions( \my %option, 'email' )
-  or die $Usage;
+GetOptions(
+    'version=s' => \my $version,
+    'email'     => \my $no_pod,
+) or die $Usage;
 
-my $since_until = shift;
+$version =~ m{^ 5\. (\d{1,2}) \. (\d{1,2}) (?: -RC(\d) )? $}xms
+  or die "Version must be 5.x.y or 5.x.y-RC#\n";
 
-my ( $since, $until ) = split '\.\.', $since_until;
+# version used when generating diffs (acknowledgements, Module::CoreList etc)
+# 5.36.0 -> 5.34.0
+# 5.36.1 -> 5.36.0
+my ($major, $minor, $point_with_maybe_rc) = split(/\./, $version);
+my ($point) = split(/-/, $point_with_maybe_rc);
+my $last_version = join('.', $major, ($point == 0 ? ($minor - 2, 0) : ($minor, $point-1)));
 
-die $Usage
-    unless $since_until && $since && $until;
+my $start_tag = "v$last_version";
 
-my $previous_version = previous_version($since);
-my $next_version     = next_version($since);
-my $development_time = development_time( $since, $until );
+my $development_time = development_time($start_tag);
 
-my ( $changes, $files, $code_changes, $code_files ) = changes_files($since_until);
+my ( $changes, $files, $code_changes, $code_files ) = changes_files($start_tag);
 my $formatted_changes = commify( round($changes) );
 my $formatted_files   = commify( round($files) );
 my $formatted_code_changes = commify( round($code_changes) );
 my $formatted_code_files   = commify( round($code_files) );
 
-my $authors = authors($since_until);
+my $authors = authors($start_tag);
 my $nauthors = $authors =~ tr/,/,/;
 $nauthors++;
 
 my $text
-    = "Perl $next_version represents approximately $development_time of development
-since Perl $previous_version and contains approximately $formatted_changes
+    = "Perl $version represents approximately $development_time of development
+since Perl $last_version and contains approximately $formatted_changes
 lines of changes across $formatted_files files from $nauthors authors.
 
 Excluding auto-generated files, documentation and release tools, there
@@ -51,7 +56,7 @@ $formatted_code_files .pm, .t, .c and .h files.
 
 Perl continues to flourish into its fourth decade thanks to a vibrant
 community of users and developers. The following people are known to
-have contributed the improvements that became Perl $next_version:
+have contributed the improvements that became Perl $version:
 
 $authors
 The list above is almost certainly incomplete as it is automatically
@@ -68,30 +73,16 @@ please see the F<AUTHORS> file in the Perl source distribution.";
 
 # drop POD markers (naively)
 $text =~ s/[BCIF]<([^>]+)>/$1/g
-  if $option{email};
+  if $no_pod;
 
 my $wrapped = fill( '', '', $text );
 print "$wrapped\n";
 
-# return the previous Perl version, eg 5.15.0
-sub previous_version ( $since ) {
-    my $version = version->new($since);
-    $version =~ s/^v//;
-    return $version;
-}
-
-# returns the upcoming release Perl version, eg 5.15.1
-sub next_version ( $since ) {
-    my $version = version->new($since);
-    ( $version->{version}->[-1] )++;
-    return version->new( join( '.', @{ $version->{version} } ) );
-}
-
 # returns the development time since the previous version in weeks
 # or months
-sub development_time ( $since, $until ) {
+sub development_time ( $since ) {
     my $first_timestamp = qx(git log -1 --pretty=format:%ct --summary $since);
-    my $last_timestamp  = qx(git log -1 --pretty=format:%ct --summary $until);
+    my $last_timestamp  = qx(git log -1 --pretty=format:%ct --summary HEAD);
 
     die "Missing first timestamp" unless $first_timestamp;
     die "Missing last timestamp" unless $last_timestamp;
@@ -119,12 +110,12 @@ sub _round {
 
 # returns the number of changed lines and files since the previous
 # version
-sub changes_files ( $since_until ) {
-    my $output = qx(git diff --shortstat $since_until);
+sub changes_files ( $since ) {
+    my $output = qx(git diff --shortstat $since..HEAD);
     my $q = ($^O =~ /^(?:MSWin32|VMS)$/io) ? '"' : "'";
-    my @filenames = qx(git diff --numstat $since_until | $^X -anle ${q}next if m{^dist/Module-CoreList} or not /\\.(?:pm|c|h|t)\\z/; print \$F[2]$q);
+    my @filenames = qx(git diff --numstat $since..HEAD | $^X -anle ${q}next if m{^dist/Module-CoreList} or not /\\.(?:pm|c|h|t)\\z/; print \$F[2]$q);
     chomp @filenames;
-    my $output_code_changed = qx# git diff --shortstat $since_until -- @filenames #;
+    my $output_code_changed = qx# git diff --shortstat $since..HEAD -- @filenames #;
 
     return ( _changes_from_cmd ( $output ),
              _changes_from_cmd ( $output_code_changed ) );
@@ -157,9 +148,9 @@ sub commify {
 }
 
 # returns a list of the authors
-sub authors ( $since_until ) {
+sub authors ( $since ) {
     return decode_utf8
-        qx($^X Porting/updateAUTHORS.pl --who $since_until);
+        qx($^X Porting/updateAUTHORS.pl --who $since..HEAD);
 }
 
 __END__
