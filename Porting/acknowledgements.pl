@@ -1,22 +1,5 @@
 #!perl
 
-=head1 NAME
-
-Porting/acknowledgements.pl - Generate perldelta acknowledgements text
-
-=head1 SYNOPSIS
-
-  perl Porting/acknowledgements.pl v5.15.0..HEAD
-
-=head1 DESCRIPTION
-
-This generates the text which goes in the Acknowledgements section in
-a perldelta. You pass in the previous version and it guesses the next
-version, fetches information from the repository and outputs the
-text.
-
-=cut
-
 use strict;
 use warnings;
 use autodie;
@@ -179,3 +162,22 @@ sub authors {
     return decode_utf8
         qx($^X Porting/updateAUTHORS.pl --who $since_until);
 }
+
+__END__
+
+=head1 NAME
+
+Porting/acknowledgements.pl - Generate perldelta acknowledgements text
+
+=head1 SYNOPSIS
+
+  perl Porting/acknowledgements.pl v5.15.0..HEAD
+
+=head1 DESCRIPTION
+
+This generates the text which goes in the Acknowledgements section in
+a perldelta. You pass in the previous version and it guesses the next
+version, fetches information from the repository and outputs the
+text.
+
+=cut
