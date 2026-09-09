@@ -1,7 +1,6 @@
 #!perl
 
-use strict;
-use warnings;
+use v5.36;
 use autodie;
 use Getopt::Long;
 use Encode qw(decode_utf8);
@@ -27,17 +26,17 @@ my ( $since, $until ) = split '\.\.', $since_until;
 die $Usage
     unless $since_until && $since && $until;
 
-my $previous_version = previous_version();
-my $next_version     = next_version();
-my $development_time = development_time();
+my $previous_version = previous_version($since);
+my $next_version     = next_version($since);
+my $development_time = development_time( $since, $until );
 
-my ( $changes, $files, $code_changes, $code_files ) = changes_files();
+my ( $changes, $files, $code_changes, $code_files ) = changes_files($since_until);
 my $formatted_changes = commify( round($changes) );
 my $formatted_files   = commify( round($files) );
 my $formatted_code_changes = commify( round($code_changes) );
 my $formatted_code_files   = commify( round($code_files) );
 
-my $authors = authors();
+my $authors = authors($since_until);
 my $nauthors = $authors =~ tr/,/,/;
 $nauthors++;
 
@@ -75,14 +74,14 @@ my $wrapped = fill( '', '', $text );
 print "$wrapped\n";
 
 # return the previous Perl version, eg 5.15.0
-sub previous_version {
+sub previous_version ( $since ) {
     my $version = version->new($since);
     $version =~ s/^v//;
     return $version;
 }
 
 # returns the upcoming release Perl version, eg 5.15.1
-sub next_version {
+sub next_version ( $since ) {
     my $version = version->new($since);
     ( $version->{version}->[-1] )++;
     return version->new( join( '.', @{ $version->{version} } ) );
@@ -90,7 +89,7 @@ sub next_version {
 
 # returns the development time since the previous version in weeks
 # or months
-sub development_time {
+sub development_time ( $since, $until ) {
     my $first_timestamp = qx(git log -1 --pretty=format:%ct --summary $since);
     my $last_timestamp  = qx(git log -1 --pretty=format:%ct --summary $until);
 
@@ -120,7 +119,7 @@ sub _round {
 
 # returns the number of changed lines and files since the previous
 # version
-sub changes_files {
+sub changes_files ( $since_until ) {
     my $output = qx(git diff --shortstat $since_until);
     my $q = ($^O =~ /^(?:MSWin32|VMS)$/io) ? '"' : "'";
     my @filenames = qx(git diff --numstat $since_until | $^X -anle ${q}next if m{^dist/Module-CoreList} or not /\\.(?:pm|c|h|t)\\z/; print \$F[2]$q);
@@ -158,7 +157,7 @@ sub commify {
 }
 
 # returns a list of the authors
-sub authors {
+sub authors ( $since_until ) {
     return decode_utf8
         qx($^X Porting/updateAUTHORS.pl --who $since_until);
 }
